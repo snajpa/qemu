@@ -2,6 +2,11 @@
  * QEMU System Emulator
  *
  * Copyright (c) 2003-2008 Fabrice Bellard
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * Authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,6 +89,8 @@
 
 #include "qemu/sockets.h"
 #include "ui/qemu-spice.h"
+
+#include "interrupt-router.h"
 
 #define READ_BUF_LEN 4096
 #define READ_RETRIES 10
@@ -652,10 +659,16 @@ static int mux_proc_byte(CharDriverState *chr, MuxDriver *d, int ch)
             break;
         case 'x':
             {
-                 const char *term =  "QEMU: Terminated\n\r";
-                 qemu_chr_write_all(chr, (uint8_t *)term, strlen(term));
-                 exit(0);
-                 break;
+                const char *term =  "QEMU: Terminated\n\r";
+                qemu_chr_write_all(chr, (uint8_t *)term, strlen(term));
+
+                if (local_cpus != smp_cpus) {
+                    exit_forwarding();
+                    disconnect_io_router();
+                }
+
+                exit(0);
+                break;
             }
         case 's':
             blk_commit_all();

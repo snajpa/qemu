@@ -2,6 +2,11 @@
  * NUMA parameter parsing routines
  *
  * Copyright (c) 2014 Fujitsu Ltd.
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * Authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -430,6 +435,15 @@ static void allocate_system_memory_nonnuma(MemoryRegion *mr, Object *owner,
 #endif
     } else {
         memory_region_init_ram(mr, owner, name, ram_size, &error_fatal);
+        if (shm_path) {
+            fprintf(stdout, "Use local shared memory mode.\n");
+            fflush(stdout);
+            memory_region_init_shram(mr, owner, name, ram_size, shm_path, &error_fatal);
+        }
+        else {
+            memory_region_init_ram(mr, owner, name, ram_size, &error_fatal);
+        }
+
     }
     vmstate_register_ram_global(mr);
 }

@@ -2,6 +2,11 @@
  * QEMU monitor
  *
  * Copyright (c) 2003-2004 Fabrice Bellard
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * Authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -498,8 +503,15 @@ const MonitorDef *target_monitor_defs(void)
 
 void hmp_info_local_apic(Monitor *mon, const QDict *qdict)
 {
-    x86_cpu_dump_local_apic_state(mon_get_cpu(), (FILE *)mon, monitor_fprintf,
-                                  CPU_DUMP_FPU);
+    int i;
+
+    for (i = 0; i < smp_cpus; i++) {
+        CPUState *cpu = qemu_get_cpu(i);
+        if (cpu && cpu->local) {
+            x86_cpu_dump_local_apic_state(cpu, (FILE *)mon, monitor_fprintf,
+                                        CPU_DUMP_FPU);
+        }
+    }
 }
 
 void hmp_info_io_apic(Monitor *mon, const QDict *qdict)

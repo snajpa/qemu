@@ -1,6 +1,17 @@
 #ifndef APIC_H
 #define APIC_H
-
+/*
+ * Copyright (C) 2017, Trusted Cloud Group, Shanghai Jiao Tong University.
+ * 
+ * Authors:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2.  See
+ * the COPYING file in the top-level directory.
+ *
+ */
 #include "qemu-common.h"
 
 /* apic.c */
@@ -24,4 +35,9 @@ void apic_designate_bsp(DeviceState *d, bool bsp);
 /* pc.c */
 DeviceState *cpu_get_current_apic(void);
 
+void apic_init_level_deassert(CPUState *cpu);
+void apic_lapic_write(CPUState *cpu, hwaddr addr, uint32_t val);
+void apic_mem_writel(void *opaque, hwaddr addr, uint32_t val);
+void apic_set_irq_detour(CPUState *cpu, int vector_num, int trigger_mode);
+void apic_startup(CPUState *cpu, int vector_num);
 #endif

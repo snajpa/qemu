@@ -2,6 +2,11 @@
  * QEMU monitor
  *
  * Copyright (c) 2003-2004 Fabrice Bellard
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * Authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -850,6 +855,12 @@ static void do_help_cmd(Monitor *mon, const QDict *qdict)
     help_cmd(mon, qdict_get_try_str(qdict, "name"));
 }
 
+// binss: for debug
+static void do_test_cmd(Monitor *mon, const QDict *qdict)
+{
+    monitor_printf(mon, "Test~~~\n");
+}
+
 static void hmp_trace_event(Monitor *mon, const QDict *qdict)
 {
     const char *tp_name = qdict_get_str(qdict, "name");
@@ -1043,7 +1054,14 @@ int monitor_get_cpu_index(void)
 
 static void hmp_info_registers(Monitor *mon, const QDict *qdict)
 {
-    cpu_dump_state(mon_get_cpu(), (FILE *)mon, monitor_fprintf, CPU_DUMP_FPU);
+    int i;
+
+    for (i = 0; i < smp_cpus; i++) {
+        CPUState *cpu = qemu_get_cpu(i);
+        if (cpu && cpu->local) {
+            cpu_dump_state(cpu, (FILE *)mon, monitor_fprintf, CPU_DUMP_FPU);
+        }
+    }
 }
 
 static void hmp_info_jit(Monitor *mon, const QDict *qdict)

@@ -2,6 +2,11 @@
  * DMA helper functions
  *
  * Copyright (c) 2009 Red Hat
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * Authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * This work is licensed under the terms of the GNU General Public License
  * (GNU GPL), version 2 or later.
@@ -132,7 +137,7 @@ static inline void *dma_memory_map(AddressSpace *as,
     hwaddr xlen = *len;
     void *p;
 
-    p = address_space_map(as, addr, &xlen, dir == DMA_DIRECTION_FROM_DEVICE);
+    p = address_space_map(as, addr, &xlen, dir == DMA_DIRECTION_FROM_DEVICE, true, NULL);
     *len = xlen;
     return p;
 }
@@ -142,7 +147,27 @@ static inline void dma_memory_unmap(AddressSpace *as,
                                     DMADirection dir, dma_addr_t access_len)
 {
     address_space_unmap(as, buffer, (hwaddr)len,
-                        dir == DMA_DIRECTION_FROM_DEVICE, access_len);
+                        dir == DMA_DIRECTION_FROM_DEVICE, access_len, true);
+}
+
+static inline void *dma_memory_map_internal(AddressSpace *as,
+                                   dma_addr_t addr, dma_addr_t *len,
+                                   DMADirection dir, bool dsm_pin, bool *is_dsm)
+{
+    hwaddr xlen = *len;
+    void *p;
+
+    p = address_space_map(as, addr, &xlen, dir == DMA_DIRECTION_FROM_DEVICE, dsm_pin, is_dsm);
+    *len = xlen;
+    return p;
+}
+
+static inline void dma_memory_unmap_internal(AddressSpace *as,
+                                    void *buffer, dma_addr_t len,
+                                    DMADirection dir, dma_addr_t access_len, bool dsm_unpin)
+{
+    address_space_unmap(as, buffer, (hwaddr)len,
+                        dir == DMA_DIRECTION_FROM_DEVICE, access_len, dsm_unpin);
 }
 
 #define DEFINE_LDST_DMA(_lname, _sname, _bits, _end) \

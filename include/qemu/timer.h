@@ -1,10 +1,23 @@
 #ifndef QEMU_TIMER_H
 #define QEMU_TIMER_H
+/*
+ * Copyright (c) 2019 Trusted Cloud Group, Shanghai Jiao Tong University
+ * Authors:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2.  See
+ * the COPYING file in the top-level directory.
+ *
+ */
 
 #include "qemu-common.h"
 #include "qemu/notify.h"
 #include "qemu/host-utils.h"
 #include "sysemu/cpus.h"
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define NANOSECONDS_PER_SECOND 1000000000LL
 
@@ -1009,5 +1022,16 @@ static inline int64_t profile_getclock(void)
 extern int64_t tcg_time;
 extern int64_t dev_time;
 #endif
+
+/* Calculate usr+sys time. */
+static inline uint64_t exec_usec(void)
+{
+    struct rusage usage;
+
+    getrusage(RUSAGE_SELF, &usage);
+
+    return usage.ru_utime.tv_sec * 1000 * 1000 + usage.ru_utime.tv_usec +
+        usage.ru_stime.tv_sec * 1000 * 1000 + usage.ru_stime.tv_usec;
+}
 
 #endif

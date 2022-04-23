@@ -2,6 +2,11 @@
  *  i386 helpers (without register variable usage)
  *
  *  Copyright (c) 2003 Fabrice Bellard
+ *  Copyright (c) 2017 Trusted Cloud Group, Shanghai Jiao Tong University
+ *  Authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,6 +27,8 @@
 #include "exec/exec-all.h"
 #include "sysemu/kvm.h"
 #include "kvm_i386.h"
+#include "interrupt-router.h"
+
 #ifndef CONFIG_USER_ONLY
 #include "sysemu/sysemu.h"
 #include "monitor/monitor.h"
@@ -1302,12 +1309,22 @@ void do_cpu_init(X86CPU *cpu)
     CPUState *cs = CPU(cpu);
     CPUX86State *env = &cpu->env;
     CPUX86State *save = g_new(CPUX86State, 1);
+
+    if (local_cpus != smp_cpus) {
+        qemu_mutex_lock(&ipi_mutex);
+    }
+
     int sipi = cs->interrupt_request & CPU_INTERRUPT_SIPI;
 
     *save = *env;
 
     cpu_reset(cs);
     cs->interrupt_request = sipi;
+
+    if (local_cpus != smp_cpus) {
+        qemu_mutex_unlock(&ipi_mutex);
+    }
+
     memcpy(&env->start_init_save, &save->start_init_save,
            offsetof(CPUX86State, end_init_save) -
            offsetof(CPUX86State, start_init_save));

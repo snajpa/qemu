@@ -3,6 +3,11 @@
  *
  * Copyright (c) 2003 Fabrice Bellard
  * Copyright (c) 2006 Openedhand Ltd.
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +41,8 @@
 #include "qemu/cutils.h"
 
 #include "hw/ide/internal.h"
+
+//#define DEBUG_IDE 
 
 /* These values were based on a Seagate ST3500418AS but have been modified
    to make more sense in QEMU */
@@ -2013,7 +2020,7 @@ void ide_exec_cmd(IDEBus *bus, uint32_t val)
     IDEState *s;
     bool complete;
 
-#if defined(DEBUG_IDE)
+#ifdef DEBUG_IDE
     printf("ide: CMD=%02x\n", val);
 #endif
     s = idebus_active_if(bus);
@@ -2297,6 +2304,9 @@ uint32_t ide_data_readl(void *opaque, uint32_t addr)
     uint8_t *p;
     int ret;
 
+#ifdef DEBUG_IDE
+    printf("ide: read datal addr=0x%x\n", addr);
+#endif
     /* PIO data access allowed only when DRQ bit is set. The result of a read
      * during PIO in is indeterminate, return 0 and don't move forward. */
     if (!(s->status & DRQ_STAT) || !ide_is_pio_out(s)) {

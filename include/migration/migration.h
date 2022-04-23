@@ -2,9 +2,13 @@
  * QEMU live migration
  *
  * Copyright IBM, Corp. 2008
- *
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ *   
  * Authors:
  *  Anthony Liguori   <aliguori@us.ibm.com>
+ *  Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *  Yubin Chen 	    <binsschen@sjtu.edu.cn>
+ *  Zhuocheng Ding  <tcbbd@sjtu.edu.cn>
  *
  * This work is licensed under the terms of the GNU GPL, version 2.  See
  * the COPYING file in the top-level directory.
@@ -359,4 +363,13 @@ int ram_save_queue_pages(MigrationState *ms, const char *rbname,
 PostcopyState postcopy_state_get(void);
 /* Set the state and return the old state */
 PostcopyState postcopy_state_set(PostcopyState new_state);
+
+struct router_address {
+    char host[20];
+    char port[10];
+    int target;
+};
+
+QEMUFile * qemu_rdma_build_outcoming_file(struct router_address *addr);
+QEMUFile * qemu_rdma_build_incoming_file(struct router_address *addr);
 #endif

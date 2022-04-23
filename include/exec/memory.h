@@ -2,9 +2,13 @@
  * Physical memory management API
  *
  * Copyright 2011 Red Hat, Inc. and/or its affiliates
- *
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ *   
  * Authors:
  *  Avi Kivity <avi@redhat.com>
+ *  Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *  Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *  Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * This work is licensed under the terms of the GNU GPL, version 2.  See
  * the COPYING file in the top-level directory.
@@ -383,6 +387,13 @@ void memory_region_init_ram(MemoryRegion *mr,
                             struct Object *owner,
                             const char *name,
                             uint64_t size,
+                            Error **errp);
+
+void memory_region_init_shram(MemoryRegion *mr,
+                            struct Object *owner,
+                            const char *name,
+                            uint64_t size,
+                            const char *path,
                             Error **errp);
 
 /**
@@ -1451,7 +1462,7 @@ bool address_space_access_valid(AddressSpace *as, hwaddr addr, int len, bool is_
  * @is_write: indicates the transfer direction
  */
 void *address_space_map(AddressSpace *as, hwaddr addr,
-                        hwaddr *plen, bool is_write);
+                        hwaddr *plen, bool is_write, bool dsm_pin, bool *is_dsm);
 
 /* address_space_unmap: Unmaps a memory region previously mapped by address_space_map()
  *
@@ -1465,7 +1476,7 @@ void *address_space_map(AddressSpace *as, hwaddr addr,
  * @is_write: indicates the transfer direction
  */
 void address_space_unmap(AddressSpace *as, void *buffer, hwaddr len,
-                         int is_write, hwaddr access_len);
+                         int is_write, hwaddr access_len, bool dsm_unpin);
 
 
 /* Internal functions, part of the implementation of address_space_read.  */
@@ -1487,6 +1498,9 @@ static inline bool memory_access_is_direct(MemoryRegion *mr, bool is_write)
                memory_region_is_romd(mr);
     }
 }
+
+#include "sysemu/kvm.h"
+#include "sysemu/sysemu.h"
 
 /**
  * address_space_read: read from an address space.
@@ -1514,7 +1528,8 @@ MemTxResult address_space_read(AddressSpace *as, hwaddr addr, MemTxAttrs attrs,
             rcu_read_lock();
             l = len;
             mr = address_space_translate(as, addr, &addr1, &l, false);
-            if (len == l && memory_access_is_direct(mr, false)) {
+            if (len == l && memory_access_is_direct(mr, false) &&
+                    (!kvm_enabled() || local_cpus == smp_cpus || shm_path != NULL)) {
                 ptr = qemu_map_ram_ptr(mr->ram_block, addr1);
                 memcpy(buf, ptr, len);
             } else {

@@ -69,6 +69,9 @@
 #include "qom/cpu.h"
 #include "hw/nmi.h"
 #include "hw/i386/intel_iommu.h"
+#include "exec/ram_addr.h"
+#include "sys/mman.h"
+#include "interrupt-router.h"
 
 /* debug PC/ISA interrupts */
 //#define DEBUG_IRQ
@@ -87,6 +90,8 @@
 #define FW_CFG_HPET (FW_CFG_ARCH_LOCAL + 4)
 
 #define E820_NR_ENTRIES		16
+
+#define PAGE_SIZE getpagesize()
 
 struct e820_entry {
     uint64_t address;
@@ -1076,6 +1081,7 @@ DeviceState *cpu_get_current_apic(void)
     } else {
         return NULL;
     }
+
 }
 
 void pc_acpi_smi_interrupt(void *opaque, int irq, int level)
@@ -1367,14 +1373,34 @@ void pc_memory_init(PCMachineState *pcms,
     int linux_boot, i;
     MemoryRegion *ram, *option_rom_mr;
     MemoryRegion *ram_below_4g, *ram_above_4g;
+    MemoryRegion *ram_subregion;
     FWCfgState *fw_cfg;
     MachineState *machine = MACHINE(pcms);
     PCMachineClass *pcmc = PC_MACHINE_GET_CLASS(pcms);
+    struct kvm_dsm_params params;
 
     assert(machine->ram_size == pcms->below_4g_mem_size +
                                 pcms->above_4g_mem_size);
 
     linux_boot = (machine->kernel_filename != NULL);
+
+    /* Start DSM */
+    if (local_cpus != smp_cpus && !shm_path) {
+        if (kvm_enabled() && kvm_check_extension(kvm_state, KVM_CAP_X86_DSM)) {
+            params.dsm_index = local_cpu_start_index / local_cpus;
+            params.cluster_iplist = (void *) get_cluster_iplist(&params.cluster_iplist_len);
+            int ret = kvm_vm_ioctl(kvm_state, KVM_DSM_ENABLE, &params);
+            if (ret < 0) {
+                error_report("Enable kernel DSM failed: %s", strerror(-ret));
+                exit(EXIT_FAILURE);
+            }
+            printf("start kvm dsm server, total memory size: %lu\n",
+                    machine->ram_size);
+        } else {
+            error_report("Could not start distributed QEMU: DSM not supported.");
+            exit(EXIT_FAILURE);
+        }
+    }
 
     /* Allocate RAM.  We allocate it as a single memory region and use
      * aliases to address portions of it, mostly for backwards compatibility
@@ -1488,6 +1514,19 @@ void pc_memory_init(PCMachineState *pcms,
 
     /* Init default IOAPIC address space */
     pcms->ioapic_as = &address_space_memory;
+
+    if (local_cpus != smp_cpus) {
+        if (ram->ram) {
+            mlock(ram->ram_block->host, ram->ram_block->max_length);
+        } else {
+            QTAILQ_FOREACH(ram_subregion, &ram->subregions, subregions_link) {
+                if (ram_subregion->ram) {
+                    mlock(ram_subregion->ram_block->host,
+                            ram_subregion->ram_block->max_length);
+                }
+            }
+        }
+    }
 }
 
 qemu_irq pc_allocate_cpu_irq(void)
@@ -1976,6 +2015,11 @@ static void pc_cpu_pre_plug(HotplugHandler *hotplug_dev,
 
     cs = CPU(cpu);
     cs->cpu_index = idx;
+
+    // binss: local cpu
+    if (idx < local_cpu_start_index || idx > local_cpu_start_index + local_cpus - 1) {
+        cs->local = false;
+    }
 }
 
 static void pc_machine_device_pre_plug_cb(HotplugHandler *hotplug_dev,

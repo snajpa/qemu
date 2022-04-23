@@ -5,6 +5,11 @@
  * Copyright (c) 2010 Roland Elek <elek.roland@gmail.com>
  * Copyright (c) 2010 Sebastian Herbszt <herbszt@gmx.de>
  * Copyright (c) 2010 Alexander Graf <agraf@suse.de>
+ * Copyright (c) 2018 Trusted Cloud Group, Shanghai Jiao Tong University
+ * authors in Trusted Cloud Group, Shanghai Jiao Tong University:
+ *   Jin Zhang 	    <jzhang3002@sjtu.edu.cn>
+ *   Yubin Chen 	<binsschen@sjtu.edu.cn>
+ *   Zhuocheng Ding <tcbbd@sjtu.edu.cn>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -278,7 +283,9 @@ struct AHCIDevice {
     struct AHCIState *hba;
     QEMUBH *check_bh;
     uint8_t *lst;
+    bool lst_is_dsm;
     uint8_t *res_fis;
+    bool res_fis_is_dsm;
     bool done_atapi_packet;
     int32_t busy_slot;
     bool init_d2h_sent;
